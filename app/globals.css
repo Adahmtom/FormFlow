@@ -1,0 +1,76 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:    #FF6B35;
+  --accent-lt: #FF9A5C;
+  --bg:        #060608;
+  --bg-card:   #0d0d16;
+  --bg-sub:    #08080f;
+  --border:    #171726;
+  --border-lt: #1e1e30;
+  --text:      #F0EFF8;
+  --text-muted:#777;
+  --text-dim:  #444;
+}
+
+html, body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+
+/* Scrollbars */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0c0c10; }
+::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 3px; }
+
+/* Animations */
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-up { animation: fade-up .3s ease both; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* Smooth transitions globally */
+* { -webkit-tap-highlight-color: transparent; }
+button, a { -webkit-touch-callout: none; }
+
+/* Mobile form zoom prevention */
+@media (max-width: 640px) {
+  input[type="text"], input[type="email"], input[type="tel"],
+  input[type="number"], input[type="date"], textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Dark input shared style */
+.dark-input {
+  width: 100%;
+  background: #0e0e16;
+  border: 1.5px solid var(--border-lt);
+  border-radius: 9px;
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .2s;
+}
+.dark-input:focus  { border-color: var(--accent); }
+.dark-input::placeholder { color: #3a3a55; }
+select.dark-input option { background: #0e0e16; }
+input[type="color"]  { appearance: none; border: none; cursor: pointer; background: none; width: 32px; height: 32px; border-radius: 7px; overflow: hidden; padding: 0; }
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+input[type="range"]    { accent-color: var(--accent); cursor: pointer; }
+input[type="radio"],
+input[type="checkbox"] { accent-color: var(--accent); }
+
+/* Spreadsheet table */
+.ss-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ss-table th { background: #0a0a12; border: 1px solid #1a1a28; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #555; letter-spacing: .05em; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+.ss-table td { border: 1px solid #12121e; padding: 9px 14px; color: #ccc; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background .15s; }
+.ss-table tr:hover td { background: #0e0e18; }
+.ss-table tr.selected td { background: rgba(255,107,53,.07); }
+.ss-row-num { background: #0a0a12; color: #333; font-size: 11px; font-weight: 700; text-align: center; width: 36px; min-width: 36px; }
