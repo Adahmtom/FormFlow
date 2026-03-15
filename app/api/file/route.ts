@@ -57,3 +57,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { path: filePath, responseId, fieldLabel } = await request.json();
+    if (!filePath || !responseId || !fieldLabel) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    const { data: profile } = await supabase
+      .from("user_profiles").select("role").eq("id", user.id).single();
+    if (!profile || !["admin", "editor"].includes(profile.role)) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
+    const svc = getServiceClient();
+
+    // Remove from storage
+    await svc.storage.from(BUCKET_NAME).remove([filePath]);
+
+    // Clear the field value from the response record
+    const { data: resp } = await svc
+      .from("responses").select("data").eq("id", responseId).single();
+    if (resp?.data) {
+      const updated = { ...resp.data };
+      delete updated[fieldLabel];
+      delete updated[`${fieldLabel} (filename)`];
+      await svc.from("responses").update({ data: updated }).eq("id", responseId);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("File delete error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}

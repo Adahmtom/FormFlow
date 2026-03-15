@@ -51,6 +51,21 @@ export async function submitResponse(
   return data as Response;
 }
 
+// ── Update response data fields (admin use: remove a file field, etc.) ──
+export async function updateResponseData(
+  responseId: string,
+  data: Record<string, string | string[]>
+): Promise<void> {
+  const service = getServiceClient();
+  const { error } = await service
+    .from("responses")
+    .update({ data })
+    .eq("id", responseId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/uploads");
+  revalidatePath("/dashboard");
+}
+
 // ── Get response stats for a form ──
 export async function getResponseStats(formId: string) {
   const service = getServiceClient();

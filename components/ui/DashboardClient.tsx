@@ -22,8 +22,26 @@ export default function DashboardClient({
   fileUploads: FileUploadEntry[];
 }) {
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
+  const [deletingPaths,   setDeletingPaths]   = useState<Set<string>>(new Set());
   const [activeCat, setActiveCat]             = useState<string>("all");
   const [expandedForms, setExpandedForms]     = useState<Record<string, boolean>>({});
+  const [uploads, setUploads]                 = useState(fileUploads);
+
+  const handleDelete = async (entry: (typeof fileUploads)[0]) => {
+    if (!confirm(`Delete "${entry.fileName}"? This cannot be undone.`)) return;
+    setDeletingPaths(prev => new Set([...prev, entry.filePath]));
+    try {
+      const res  = await fetch("/api/file", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: entry.filePath, responseId: entry.responseId, fieldLabel: entry.fieldLabel }),
+      });
+      const data = await res.json();
+      if (data.success) setUploads(prev => prev.filter(u => u.filePath !== entry.filePath));
+      else alert(`Delete failed: ${data.error}`);
+    } catch { alert("Delete failed. Please try again."); }
+    setDeletingPaths(prev => { const n = new Set(prev); n.delete(entry.filePath); return n; });
+  };
 
   const totalResp = Object.values(responseMap).reduce((s, c) => s + c, 0);
   const catCount  = (id: string) => forms.filter(f => f.category === id).length;
@@ -55,8 +73,8 @@ export default function DashboardClient({
 
   // ── Group file uploads by formId, then filter by category tab ──
   const filteredUploads = activeCat === "all"
-    ? fileUploads
-    : fileUploads.filter(e => {
+    ? uploads
+    : uploads.filter(e => {
         const form = forms.find(f => f.id === e.formId);
         return form?.category === activeCat;
       });
@@ -73,9 +91,9 @@ export default function DashboardClient({
   }
 
   // Category tab counts
-  const catFileCounts: Record<string, number> = { all: fileUploads.length };
+  const catFileCounts: Record<string, number> = { all: uploads.length };
   for (const cat of FORM_CATEGORIES) {
-    catFileCounts[cat.id] = fileUploads.filter(e => {
+    catFileCounts[cat.id] = uploads.filter(e => {
       const form = forms.find(f => f.id === e.formId);
       return form?.category === cat.id;
     }).length;
@@ -336,22 +354,25 @@ export default function DashboardClient({
                                   </div>
                                 </div>
 
-                                {/* Download */}
-                                <button
-                                  onClick={() => handleDownload(entry.filePath, entry.fileName)}
-                                  disabled={isLoading}
-                                  title={`Download ${entry.fileName}`}
-                                  style={{
-                                    background: isLoading ? "transparent" : "#00D4FF12",
-                                    color: isLoading ? "var(--text-dim)" : "#00D4FF",
-                                    border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`,
-                                    borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700,
-                                    cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif",
-                                    flexShrink: 0, transition: "all .15s",
-                                  }}
-                                >
-                                  {isLoading ? "⏳" : "↓"}
-                                </button>
+                                {/* Actions */}
+                                <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                                  <button
+                                    onClick={() => handleDownload(entry.filePath, entry.fileName)}
+                                    disabled={isLoading}
+                                    title={`Download ${entry.fileName}`}
+                                    style={{ background: isLoading ? "transparent" : "#00D4FF12", color: isLoading ? "var(--text-dim)" : "#00D4FF", border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`, borderRadius: 6, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s" }}
+                                  >
+                                    {isLoading ? "⏳" : "↓"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(entry)}
+                                    disabled={deletingPaths.has(entry.filePath)}
+                                    title={`Delete ${entry.fileName}`}
+                                    style={{ background: deletingPaths.has(entry.filePath) ? "transparent" : "#ef444412", color: deletingPaths.has(entry.filePath) ? "var(--text-dim)" : "#ef4444", border: `1.5px solid ${deletingPaths.has(entry.filePath) ? "var(--border)" : "#ef444430"}`, borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 700, cursor: deletingPaths.has(entry.filePath) ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s" }}
+                                  >
+                                    {deletingPaths.has(entry.filePath) ? "…" : "🗑"}
+                                  </button>
+                                </div>
                               </div>
                             );
                           })}
