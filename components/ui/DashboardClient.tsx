@@ -37,8 +37,12 @@ export default function DashboardClient({
       const data = await res.json();
       if (data.url) {
         window.open(data.url, "_blank");
+      } else {
+        alert(`Could not retrieve file: ${data.error ?? "File not found in storage"}`);
       }
-    } catch {}
+    } catch (e) {
+      alert("Download failed. Please try again.");
+    }
     setDownloadingPath(null);
   };
 
