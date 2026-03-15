@@ -96,7 +96,8 @@ export default async function DashboardPage() {
 
       for (const field of fileFields) {
         const rawVal = response.data[field.label];
-        if (!rawVal || typeof rawVal !== "string" || rawVal.startsWith("http")) continue;
+        // Must be a valid storage path (contains "/") — bare filenames are import artefacts
+        if (!rawVal || typeof rawVal !== "string" || rawVal.startsWith("http") || !rawVal.includes("/")) continue;
 
         const fileName =
           (response.data[field.label + " (filename)"] as string) ||
