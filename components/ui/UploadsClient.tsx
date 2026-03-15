@@ -35,11 +35,7 @@ export default function UploadsClient({
       const res  = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
       const data = await res.json();
       if (data.url) {
-        const a = document.createElement("a");
-        a.href = data.url;
-        a.download = fileName;
-        a.target = "_blank";
-        a.click();
+        window.open(data.url, "_blank");
       }
     } catch {}
     setDownloadingPath(null);
