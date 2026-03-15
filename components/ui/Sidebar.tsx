@@ -6,12 +6,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FORM_CATEGORIES } from "@/lib/constants";
+import { useTheme } from "@/components/ThemeProvider";
 import type { UserRole } from "@/types";
 
 export default function Sidebar({ userEmail, userRole }: { userEmail: string; userRole: UserRole }) {
   const pathname = usePathname();
   const router   = useRouter();
   const supabase = createClient();
+  const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -52,52 +54,84 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
       display: "flex", alignItems: "center", gap: 10, textDecoration: "none",
       transition: "all .2s",
       background: isOn(href) ? "#FF6B3515" : "transparent",
-      color: isOn(href) ? "#FF9A5C" : "#666",
+      color: isOn(href) ? "#FF9A5C" : "var(--text-muted)",
     }}>
       <span style={{ fontSize: 16 }}>{icon}</span>{label}
     </Link>
   );
 
+  const isDark = theme === "dark";
+
   const sidebarContent = (
     <>
-      {/* Logo */}
+      {/* Logo + theme toggle */}
       <div style={{ padding: "4px 14px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: ".08em", background: "linear-gradient(135deg,#FF6B35,#FF9A5C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FORMFLOW</div>
-          <div style={{ fontSize: 10, color: "#2a2a40", marginTop: 2, letterSpacing: ".07em", textTransform: "uppercase" }}>Pro Builder</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2, letterSpacing: ".07em", textTransform: "uppercase" }}>Pro Builder</div>
         </div>
-        {isMobile && (
-          <button onClick={() => setOpen(false)} style={{
-            background: "#1e1e30", border: "none", color: "#777", fontSize: 18, cursor: "pointer",
-            width: 34, height: 34, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-          }}>✕</button>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Theme toggle */}
+          <button
+            onClick={toggle}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            style={{
+              background: "var(--bg-card)",
+              border: "1.5px solid var(--border-lt)",
+              borderRadius: 8,
+              color: isDark ? "#f59e0b" : "#6366f1",
+              fontSize: 15,
+              cursor: "pointer",
+              width: 34,
+              height: 34,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all .2s",
+              flexShrink: 0,
+            }}
+          >
+            {isDark ? "☀️" : "🌙"}
+          </button>
+          {isMobile && (
+            <button onClick={() => setOpen(false)} style={{
+              background: "var(--bg-card)", border: "1.5px solid var(--border-lt)", color: "var(--text-muted)", fontSize: 18, cursor: "pointer",
+              width: 34, height: 34, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+            }}>✕</button>
+          )}
+        </div>
       </div>
 
       {/* Main nav */}
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {navLink("/dashboard", "Dashboard", "▣")}
         {navLink("/forms", "All Forms", "◫")}
+        {/* Category shortcuts */}
+        <div style={{ paddingLeft: 10, display: "flex", flexDirection: "column", gap: 1, marginTop: 2 }}>
+          {FORM_CATEGORIES.map(cat => {
+            const href  = `/forms?category=${cat.id}`;
+            const active = pathname.startsWith("/forms") && new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("category") === cat.id;
+            return (
+              <Link key={cat.id} href={href} style={{
+                padding: "7px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600,
+                display: "flex", alignItems: "center", gap: 9, textDecoration: "none",
+                transition: "all .2s",
+                color: "var(--text-muted)",
+              }}>
+                <span style={{ fontSize: 13 }}>{cat.icon}</span>{cat.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 4 }}>
+          {navLink("/uploads", "File Uploads", "📎")}
+        </div>
       </div>
 
       {/* Admin section */}
       {userRole === "admin" && (
-        <div style={{ marginTop: 10, borderTop: "1.5px solid #111120", paddingTop: 14 }}>
-          <div style={{ fontSize: 10, color: "#2a2a40", letterSpacing: ".07em", textTransform: "uppercase", paddingLeft: 14, marginBottom: 8 }}>Admin</div>
+        <div style={{ marginTop: 10, borderTop: "1.5px solid var(--border)", paddingTop: 14 }}>
           {navLink("/admin/users", "User Management", "👥")}
-        </div>
-      )}
-
-      {/* Quick create */}
-      {(userRole === "admin" || userRole === "editor") && (
-        <div style={{ marginTop: 10, borderTop: "1.5px solid #111120", paddingTop: 14 }}>
-          <div style={{ fontSize: 10, color: "#2a2a40", letterSpacing: ".07em", textTransform: "uppercase", paddingLeft: 14, marginBottom: 8 }}>Quick Create</div>
-          {FORM_CATEGORIES.map(cat => (
-            <Link key={cat.id} href={`/builder?category=${cat.id}`}
-              style={{ padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#555", transition: "all .2s" }}>
-              <span>{cat.icon}</span>{cat.label}
-            </Link>
-          ))}
         </div>
       )}
 
@@ -110,9 +144,9 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
             fontFamily: "Outfit,sans-serif", textAlign: "center", textDecoration: "none", display: "block",
           }}>+ New Form</Link>
         )}
-        <div style={{ padding: "10px 12px", borderRadius: 10, background: "#0d0d16", border: "1px solid #171726" }}>
+        <div style={{ padding: "10px 12px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-            <div style={{ fontSize: 11, color: "#444", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{userEmail}</div>
+            <div style={{ fontSize: 11, color: "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{userEmail}</div>
             <span style={{ fontSize: 10, fontWeight: 700, color: roleColors[userRole], background: `${roleColors[userRole]}15`, padding: "2px 7px", borderRadius: 20, marginLeft: 6, flexShrink: 0 }}>{userRole}</span>
           </div>
           <button onClick={handleSignOut} style={{ fontSize: 11, color: "#f87171", background: "none", border: "none", cursor: "pointer", fontFamily: "Outfit,sans-serif", fontWeight: 600, padding: 0 }}>Sign out</button>
@@ -127,17 +161,27 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
       {isMobile && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-          background: "#08080f", borderBottom: "1.5px solid #111120",
+          background: "var(--bg-sub)", borderBottom: "1.5px solid var(--border)",
           padding: "10px 16px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <button onClick={() => setOpen(true)} style={{
-            background: "none", border: "1.5px solid #1e1e30", borderRadius: 8,
-            color: "#888", fontSize: 20, cursor: "pointer", padding: "6px 10px",
+            background: "none", border: "1.5px solid var(--border-lt)", borderRadius: 8,
+            color: "var(--text-muted)", fontSize: 20, cursor: "pointer", padding: "6px 10px",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>☰</button>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, letterSpacing: ".08em", background: "linear-gradient(135deg,#FF6B35,#FF9A5C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FORMFLOW</div>
-          <div style={{ width: 40 }} /> {/* spacer for centering */}
+          {/* Mobile theme toggle */}
+          <button
+            onClick={toggle}
+            style={{
+              background: "none", border: "1.5px solid var(--border-lt)", borderRadius: 8,
+              color: isDark ? "#f59e0b" : "#6366f1", fontSize: 16, cursor: "pointer",
+              width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            {isDark ? "☀️" : "🌙"}
+          </button>
         </div>
       )}
 
@@ -155,20 +199,21 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
       {/* Sidebar */}
       <aside style={{
         width: isMobile ? 280 : 220,
-        background: "#08080f",
-        borderRight: "1.5px solid #111120",
+        background: "var(--bg-sub)",
+        borderRight: "1.5px solid var(--border)",
         padding: "18px 10px",
         display: "flex", flexDirection: "column", gap: 3,
         flexShrink: 0,
         height: "100vh",
         overflowY: "auto",
+        transition: "background .2s, border-color .2s",
         ...(isMobile ? {
           position: "fixed",
           top: 0,
           left: open ? 0 : -300,
           zIndex: 99,
-          transition: "left .25s ease",
-          boxShadow: open ? "4px 0 24px rgba(0,0,0,.5)" : "none",
+          transition: "left .25s ease, background .2s",
+          boxShadow: open ? "4px 0 24px rgba(0,0,0,.3)" : "none",
         } : {
           position: "sticky",
           top: 0,

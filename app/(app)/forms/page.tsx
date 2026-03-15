@@ -5,7 +5,13 @@ import FormsListClient from "@/components/ui/FormsListClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function FormsPage() {
+export default async function FormsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category } = await searchParams;
+
   const forms = await getForms();
   const responseCounts = await Promise.all(
     forms.map(async (f) => {
@@ -15,5 +21,11 @@ export default async function FormsPage() {
   );
   const responseMap = Object.fromEntries(responseCounts.map(r => [r.formId, r.count]));
 
-  return <FormsListClient forms={forms} responseMap={responseMap} />;
+  return (
+    <FormsListClient
+      forms={forms}
+      responseMap={responseMap}
+      initialFilter={category ?? "all"}
+    />
+  );
 }
