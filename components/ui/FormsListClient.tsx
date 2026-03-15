@@ -8,9 +8,9 @@ import { FORM_CATEGORIES } from "@/lib/constants";
 import ImportModal from "@/components/import/ImportModal";
 import type { Form } from "@/types";
 
-export default function FormsListClient({ forms, responseMap }: { forms: Form[]; responseMap: Record<string, number> }) {
+export default function FormsListClient({ forms, responseMap, initialFilter = "all" }: { forms: Form[]; responseMap: Record<string, number>; initialFilter?: string }) {
   const router = useRouter();
-  const [filter, setFilter]   = useState("all");
+  const [filter, setFilter]   = useState(initialFilter);
   const [isPending, start]    = useTransition();
   const [importForm, setImportForm] = useState<Form | null>(null);
 
