@@ -31,15 +31,19 @@ export default function UploadsClient({
 
   const handleDownload = async (filePath: string, fileName: string) => {
     setDownloadingPath(filePath);
+    // Open window synchronously inside the user-gesture handler — required by Safari
+    const win = window.open("", "_blank");
     try {
       const res  = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
       const data = await res.json();
-      if (data.url) {
-        window.open(data.url, "_blank");
+      if (data.url && win) {
+        win.location.href = data.url;
       } else {
+        win?.close();
         alert(`Could not retrieve file: ${data.error ?? "File not found in storage"}`);
       }
-    } catch (e) {
+    } catch {
+      win?.close();
       alert("Download failed. Please try again.");
     }
     setDownloadingPath(null);
@@ -81,20 +85,20 @@ export default function UploadsClient({
           <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 5 }}>Storage</div>
           <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(28px, 5vw, 40px)", letterSpacing: ".05em", lineHeight: 1, color: "var(--text)" }}>FILE UPLOADS</h1>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="uploads-header-controls" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {/* Search */}
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", flex: 1, minWidth: 160 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", ...dimText, fontSize: 13 }}>🔍</span>
             <input
               className="dark-input"
-              style={{ paddingLeft: 30, width: 200 }}
+              style={{ paddingLeft: 30, width: "100%" }}
               placeholder="Search files, users…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           {/* View toggle */}
-          <div style={{ display: "flex", border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
             {(["grouped", "flat"] as const).map(mode => (
               <button
                 key={mode}
@@ -225,42 +229,44 @@ export default function UploadsClient({
                       return (
                         <div
                           key={`${entry.filePath}-${i}`}
-                          style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: i < entries.length - 1 ? "1px solid var(--border)" : "none", transition: "background .1s" }}
+                          className="upload-row"
+                          style={{ borderBottom: i < entries.length - 1 ? "1px solid var(--border)" : "none" }}
                           onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-sub)")}
                           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                         >
                           {/* Submitter avatar */}
                           <div
                             title={[entry.submitterName, entry.submitterEmail].filter(Boolean).join(" · ") || "Anonymous"}
-                            style={{ width: 34, height: 34, borderRadius: "50%", background: `${avatarColor}20`, border: `1.5px solid ${avatarColor}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                            style={{ width: 36, height: 36, borderRadius: "50%", background: `${avatarColor}20`, border: `1.5px solid ${avatarColor}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                           >
-                            <span style={{ fontSize: 11, fontWeight: 800, color: avatarColor }}>{initials}</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: avatarColor }}>{initials}</span>
                           </div>
 
-                          {/* Submitter info */}
-                          <div style={{ minWidth: 140, maxWidth: 180, flexShrink: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {entry.submitterName ?? "Anonymous"}
+                          {/* Merged info column — works at any width */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {/* Row 1: name + ext badge */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+                                {entry.submitterName ?? "Anonymous"}
+                              </span>
+                              <div style={{ width: 32, height: 22, borderRadius: 6, background: `${extColor}12`, border: `1.5px solid ${extColor}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <span style={{ fontSize: 8, fontWeight: 800, color: extColor, textTransform: "uppercase" }}>{ext || "?"}</span>
+                              </div>
                             </div>
+                            {/* Row 2: email */}
                             {entry.submitterEmail && (
-                              <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
                                 {entry.submitterEmail}
                               </div>
                             )}
-                          </div>
-
-                          {/* Ext badge */}
-                          <div style={{ width: 38, height: 38, borderRadius: 9, background: `${extColor}12`, border: `1.5px solid ${extColor}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <span style={{ fontSize: 9, fontWeight: 800, color: extColor, textTransform: "uppercase" }}>{ext || "?"}</span>
-                          </div>
-
-                          {/* File name + meta */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {entry.fileName}
-                            </div>
-                            <div style={{ fontSize: 11, ...dimText }}>
-                              {entry.fieldLabel} · {new Date(entry.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                            {/* Row 3: filename + date */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                              <span style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                                {entry.fileName}
+                              </span>
+                              <span style={{ fontSize: 10, ...dimText, whiteSpace: "nowrap", flexShrink: 0 }}>
+                                {new Date(entry.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                              </span>
                             </div>
                           </div>
 
@@ -270,16 +276,16 @@ export default function UploadsClient({
                             disabled={isLoading}
                             title={`Download ${entry.fileName}`}
                             style={{
-                              display: "flex", alignItems: "center", gap: 6,
+                              display: "flex", alignItems: "center", gap: 5,
                               background: isLoading ? "transparent" : "#00D4FF12",
                               color: isLoading ? "var(--text-dim)" : "#00D4FF",
                               border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF30"}`,
-                              borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700,
+                              borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 700,
                               cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif",
-                              flexShrink: 0, transition: "all .15s",
+                              flexShrink: 0, transition: "all .15s", whiteSpace: "nowrap",
                             }}
                           >
-                            {isLoading ? "⏳" : "↓ Download"}
+                            {isLoading ? "⏳" : "↓"}
                           </button>
                         </div>
                       );
@@ -294,9 +300,9 @@ export default function UploadsClient({
 
       {/* ── FLAT LIST VIEW ── */}
       {filtered.length > 0 && viewMode === "flat" && (
-        <div style={{ ...card, overflow: "hidden" }}>
+        <div className="upload-flat-scroll" style={{ ...card, overflow: "hidden" }}>
           {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "34px 1fr 1fr 1fr 1fr 100px", gap: 0, padding: "10px 18px", background: "var(--bg-sub)", borderBottom: "1.5px solid var(--border)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "34px 1fr 1fr 1fr 1fr 100px", gap: 0, padding: "10px 18px", background: "var(--bg-sub)", borderBottom: "1.5px solid var(--border)", minWidth: 560 }}>
             {["", "Submitted by", "File", "Form", "Date", ""].map((h, i) => (
               <div key={i} style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", ...dimText, paddingRight: 8 }}>{h}</div>
             ))}
@@ -317,7 +323,7 @@ export default function UploadsClient({
             return (
               <div
                 key={`${entry.filePath}-${i}`}
-                style={{ display: "grid", gridTemplateColumns: "34px 1fr 1fr 1fr 1fr 100px", gap: 0, padding: "10px 18px", borderBottom: i < filtered.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", transition: "background .1s" }}
+                style={{ display: "grid", gridTemplateColumns: "34px 1fr 1fr 1fr 1fr 100px", gap: 0, padding: "10px 18px", borderBottom: i < filtered.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", transition: "background .1s", minWidth: 560 }}
                 onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-sub)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >

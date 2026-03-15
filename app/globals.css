@@ -98,6 +98,26 @@ input[type="range"]    { accent-color: var(--accent); cursor: pointer; }
 input[type="radio"],
 input[type="checkbox"] { accent-color: var(--accent); }
 
+/* ── Upload rows — responsive ── */
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  transition: background .1s;
+}
+.upload-row:hover { background: var(--bg-sub); }
+
+.upload-flat-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 600px) {
+  .upload-row { padding: 10px 14px; gap: 10px; }
+  .upload-row-submitter { display: none; }
+  .uploads-header-controls { flex-wrap: wrap !important; width: 100%; }
+  .uploads-header-controls input { width: 100% !important; min-width: 0 !important; }
+  .upload-flat-scroll { font-size: 11px; }
+}
+
 /* Spreadsheet table */
 .ss-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ss-table th {

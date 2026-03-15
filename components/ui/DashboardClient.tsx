@@ -32,15 +32,19 @@ export default function DashboardClient({
 
   const handleDownload = async (filePath: string, fileName: string) => {
     setDownloadingPath(filePath);
+    // Open window synchronously inside the user-gesture handler — required by Safari
+    const win = window.open("", "_blank");
     try {
       const res  = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
       const data = await res.json();
-      if (data.url) {
-        window.open(data.url, "_blank");
+      if (data.url && win) {
+        win.location.href = data.url;
       } else {
+        win?.close();
         alert(`Could not retrieve file: ${data.error ?? "File not found in storage"}`);
       }
-    } catch (e) {
+    } catch {
+      win?.close();
       alert("Download failed. Please try again.");
     }
     setDownloadingPath(null);
@@ -289,41 +293,46 @@ export default function DashboardClient({
                               : (cat?.color ?? "#C77DFF");
 
                             return (
-                              <div key={`${entry.filePath}-${i}`} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderBottom: i < entries.slice(0, PREVIEW).length - 1 ? "1px solid var(--border)" : "none" }}>
-
+                              <div
+                                key={`${entry.filePath}-${i}`}
+                                className="upload-row"
+                                style={{ borderBottom: i < entries.slice(0, PREVIEW).length - 1 ? "1px solid var(--border)" : "none", padding: "10px 12px", gap: 10 }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-sub)")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                              >
                                 {/* Submitter avatar */}
                                 <div
                                   title={[entry.submitterName, entry.submitterEmail].filter(Boolean).join(" · ") || "Anonymous"}
-                                  style={{ width: 30, height: 30, borderRadius: "50%", background: `${avatarColor}20`, border: `1.5px solid ${avatarColor}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}
+                                  style={{ width: 32, height: 32, borderRadius: "50%", background: `${avatarColor}20`, border: `1.5px solid ${avatarColor}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                                 >
                                   <span style={{ fontSize: 10, fontWeight: 800, color: avatarColor }}>{initials}</span>
                                 </div>
 
-                                {/* Info */}
+                                {/* Merged info — mobile-friendly single column */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  {/* Submitter row */}
-                                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2, flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>
+                                  {/* Row 1: name + ext badge */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                                       {entry.submitterName ?? "Anonymous"}
                                     </span>
-                                    {entry.submitterEmail && (
-                                      <span style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>
-                                        {entry.submitterEmail}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {/* File row */}
-                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                    <div style={{ width: 18, height: 18, borderRadius: 4, background: `${extColor}12`, border: `1px solid ${extColor}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    <div style={{ width: 28, height: 18, borderRadius: 4, background: `${extColor}12`, border: `1px solid ${extColor}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                       <span style={{ fontSize: 7, fontWeight: 800, color: extColor, textTransform: "uppercase" }}>{ext || "?"}</span>
                                     </div>
-                                    <span style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  </div>
+                                  {/* Row 2: email */}
+                                  {entry.submitterEmail && (
+                                    <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
+                                      {entry.submitterEmail}
+                                    </div>
+                                  )}
+                                  {/* Row 3: filename + date */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                                    <span style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                                       {entry.fileName}
                                     </span>
-                                  </div>
-                                  {/* Meta */}
-                                  <div style={{ fontSize: 10, ...dimText, marginTop: 2 }}>
-                                    {entry.fieldLabel} · {new Date(entry.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                                    <span style={{ fontSize: 10, ...dimText, whiteSpace: "nowrap", flexShrink: 0 }}>
+                                      {new Date(entry.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                    </span>
                                   </div>
                                 </div>
 
@@ -336,9 +345,9 @@ export default function DashboardClient({
                                     background: isLoading ? "transparent" : "#00D4FF12",
                                     color: isLoading ? "var(--text-dim)" : "#00D4FF",
                                     border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`,
-                                    borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700,
+                                    borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700,
                                     cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif",
-                                    flexShrink: 0, transition: "all .15s", marginTop: 2,
+                                    flexShrink: 0, transition: "all .15s",
                                   }}
                                 >
                                   {isLoading ? "⏳" : "↓"}
