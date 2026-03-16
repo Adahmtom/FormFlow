@@ -106,15 +106,22 @@ export default function AdminUsersClient({
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
+            {users.map(u => {
+              const isOwner   = u.invited_by === null;
+              const isSelf    = u.id === currentUserId;
+              const protected_ = isOwner && !isSelf; // another admin trying to act on owner
+              return (
               <tr key={u.id} style={{ borderBottom: "1px solid #0f0f1a" }}>
                 <td style={{ padding: "14px 18px" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{u.full_name || "—"}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{u.full_name || "—"}</span>
+                    {isOwner && <span title="Workspace Owner" style={{ fontSize: 14 }}>👑</span>}
+                  </div>
                   <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{u.email}</div>
-                  {u.id === currentUserId && <span style={{ fontSize: 10, color: "#FF6B35", fontWeight: 700 }}>YOU</span>}
+                  {isSelf && <span style={{ fontSize: 10, color: "#FF6B35", fontWeight: 700 }}>YOU</span>}
                 </td>
                 <td style={{ padding: "14px 18px" }}>
-                  {u.id === currentUserId ? (
+                  {isSelf || protected_ ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${roleColor(u.role)}20`, color: roleColor(u.role), border: `1px solid ${roleColor(u.role)}30` }}>
                       {u.role}
                     </span>
@@ -138,27 +145,32 @@ export default function AdminUsersClient({
                   {new Date(u.created_at).toLocaleDateString()}
                 </td>
                 <td style={{ padding: "14px 18px" }}>
-                  {u.id !== currentUserId && (
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        onClick={() => handleToggleActive(u.id, u.is_active)}
-                        disabled={isPending}
-                        style={{ background: "transparent", color: u.is_active ? "#f59e0b" : "#22c55e", border: `1.5px solid ${u.is_active ? "#f59e0b30" : "#22c55e30"}`, borderRadius: 7, padding: "5px 11px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "Outfit,sans-serif" }}
-                      >
-                        {u.is_active ? "Deactivate" : "Activate"}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(u.id, u.email)}
-                        disabled={isPending}
-                        style={{ background: "rgba(239,68,68,.08)", color: "#f87171", border: "1.5px solid rgba(239,68,68,.2)", borderRadius: 7, padding: "5px 11px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "Outfit,sans-serif" }}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  {!isSelf && (
+                    protected_ ? (
+                      <span style={{ fontSize: 11, color: "#444", fontStyle: "italic" }}>Protected</span>
+                    ) : (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          onClick={() => handleToggleActive(u.id, u.is_active)}
+                          disabled={isPending}
+                          style={{ background: "transparent", color: u.is_active ? "#f59e0b" : "#22c55e", border: `1.5px solid ${u.is_active ? "#f59e0b30" : "#22c55e30"}`, borderRadius: 7, padding: "5px 11px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "Outfit,sans-serif" }}
+                        >
+                          {u.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u.id, u.email)}
+                          disabled={isPending}
+                          style={{ background: "rgba(239,68,68,.08)", color: "#f87171", border: "1.5px solid rgba(239,68,68,.2)", borderRadius: 7, padding: "5px 11px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "Outfit,sans-serif" }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

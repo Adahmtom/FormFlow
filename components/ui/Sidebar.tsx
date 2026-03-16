@@ -1,13 +1,39 @@
 // components/ui/Sidebar.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FORM_CATEGORIES } from "@/lib/constants";
 import { useTheme } from "@/components/ThemeProvider";
 import type { UserRole } from "@/types";
+
+function CategoryLinks() {
+  const pathname    = usePathname();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams.get("category");
+
+  return (
+    <div style={{ paddingLeft: 10, display: "flex", flexDirection: "column", gap: 1, marginTop: 2 }}>
+      {FORM_CATEGORIES.map(cat => {
+        const href   = `/forms?category=${cat.id}`;
+        const active = pathname.startsWith("/forms") && activeCategory === cat.id;
+        return (
+          <Link key={cat.id} href={href} style={{
+            padding: "7px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600,
+            display: "flex", alignItems: "center", gap: 9, textDecoration: "none",
+            transition: "all .2s",
+            background: active ? "#FF6B3515" : "transparent",
+            color: active ? "#FF9A5C" : "var(--text-muted)",
+          }}>
+            <span style={{ fontSize: 13 }}>{cat.icon}</span>{cat.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Sidebar({ userEmail, userRole }: { userEmail: string; userRole: UserRole }) {
   const pathname = usePathname();
@@ -107,22 +133,9 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
         {navLink("/dashboard", "Dashboard", "▣")}
         {navLink("/forms", "All Forms", "◫")}
         {/* Category shortcuts */}
-        <div style={{ paddingLeft: 10, display: "flex", flexDirection: "column", gap: 1, marginTop: 2 }}>
-          {FORM_CATEGORIES.map(cat => {
-            const href  = `/forms?category=${cat.id}`;
-            const active = pathname.startsWith("/forms") && new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("category") === cat.id;
-            return (
-              <Link key={cat.id} href={href} style={{
-                padding: "7px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600,
-                display: "flex", alignItems: "center", gap: 9, textDecoration: "none",
-                transition: "all .2s",
-                color: "var(--text-muted)",
-              }}>
-                <span style={{ fontSize: 13 }}>{cat.icon}</span>{cat.label}
-              </Link>
-            );
-          })}
-        </div>
+        <Suspense fallback={null}>
+          <CategoryLinks />
+        </Suspense>
         <div style={{ marginTop: 4 }}>
           {navLink("/uploads", "File Uploads", "📎")}
         </div>

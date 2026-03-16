@@ -87,11 +87,27 @@ export async function inviteUser(input: {
   return { success: true };
 }
 
+// ── Helper: check if a user is the workspace owner (invited_by === null) ──
+async function isWorkspaceOwner(userId: string): Promise<boolean> {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("invited_by")
+    .eq("id", userId)
+    .single();
+  return data?.invited_by === null;
+}
+
 // ── Update user role (admin only) ──
 export async function updateUserRole(userId: string, role: UserRole): Promise<void> {
   const supabase = await createServerSupabaseClient();
   const profile = await getMyProfile();
   if (profile?.role !== "admin") redirect("/dashboard");
+
+  // Protect the workspace owner — only the owner themselves can change their own role
+  const targetIsOwner = await isWorkspaceOwner(userId);
+  if (targetIsOwner && profile.id !== userId)
+    throw new Error("The workspace owner's role cannot be changed by other admins.");
 
   const { error } = await supabase
     .from("user_profiles")
@@ -108,6 +124,11 @@ export async function toggleUserActive(userId: string, isActive: boolean): Promi
   const profile = await getMyProfile();
   if (profile?.role !== "admin") redirect("/dashboard");
 
+  // Protect the workspace owner
+  const targetIsOwner = await isWorkspaceOwner(userId);
+  if (targetIsOwner && profile.id !== userId)
+    throw new Error("The workspace owner cannot be deactivated by other admins.");
+
   const { error } = await supabase
     .from("user_profiles")
     .update({ is_active: isActive })
@@ -121,6 +142,11 @@ export async function toggleUserActive(userId: string, isActive: boolean): Promi
 export async function deleteUser(userId: string): Promise<void> {
   const profile = await getMyProfile();
   if (profile?.role !== "admin") redirect("/dashboard");
+
+  // Protect the workspace owner — cannot be deleted
+  const targetIsOwner = await isWorkspaceOwner(userId);
+  if (targetIsOwner)
+    throw new Error("The workspace owner cannot be deleted.");
 
   const { createClient: createServiceClient } = await import("@supabase/supabase-js");
   const serviceClient = createServiceClient(
