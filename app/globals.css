@@ -9,20 +9,20 @@
 :root {
   --accent:      #FF6B35;
   --accent-lt:   #FF9A5C;
-  --bg:          #060608;
-  --bg-card:     #0d0d16;
-  --bg-sub:      #08080f;
-  --bg-deep:     #080810;
-  --border:      #171726;
-  --border-lt:   #1e1e30;
-  --text:        #F0EFF8;
-  --text-muted:  #777;
-  --text-dim:    #444;
-  --input-bg:    #0e0e16;
-  --input-ph:    #3a3a55;
-  --scrollbar-track: #0c0c10;
-  --scrollbar-thumb: #2a2a40;
-  --shadow:      0 4px 24px rgba(0,0,0,.4);
+  --bg:          #0f0f17;
+  --bg-card:     #17192b;
+  --bg-sub:      #0b0c18;
+  --bg-deep:     #090b14;
+  --border:      #252840;
+  --border-lt:   #323558;
+  --text:        #ffffff;
+  --text-muted:  #c2c6e0;
+  --text-dim:    #7c82a0;
+  --input-bg:    #13152a;
+  --input-ph:    #4f5578;
+  --scrollbar-track: #0f1020;
+  --scrollbar-thumb: #323558;
+  --shadow:      0 4px 28px rgba(0,0,0,.5);
 }
 
 /* ── Light theme ── */
@@ -97,6 +97,26 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 input[type="range"]    { accent-color: var(--accent); cursor: pointer; }
 input[type="radio"],
 input[type="checkbox"] { accent-color: var(--accent); }
+
+/* ── Upload rows — responsive ── */
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  transition: background .1s;
+}
+.upload-row:hover { background: var(--bg-sub); }
+
+.upload-flat-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 600px) {
+  .upload-row { padding: 10px 14px; gap: 10px; }
+  .upload-row-submitter { display: none; }
+  .uploads-header-controls { flex-wrap: wrap !important; width: 100%; }
+  .uploads-header-controls input { width: 100% !important; min-width: 0 !important; }
+  .upload-flat-scroll { font-size: 11px; }
+}
 
 /* Spreadsheet table */
 .ss-table { width: 100%; border-collapse: collapse; font-size: 13px; }

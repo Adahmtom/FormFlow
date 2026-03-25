@@ -51,6 +51,58 @@ export async function submitResponse(
   return data as Response;
 }
 
+// ── Delete a single response (admin / editor only) ──
+export async function deleteResponse(responseId: string): Promise<void> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("user_profiles").select("role").eq("id", user.id).single();
+  if (!profile || !["admin", "editor"].includes(profile.role))
+    throw new Error("Not authorized");
+
+  const service = getServiceClient();
+  const { error } = await service.from("responses").delete().eq("id", responseId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/forms");
+  revalidatePath("/dashboard");
+}
+
+// ── Bulk delete responses (admin / editor only) ──
+export async function deleteResponses(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("user_profiles").select("role").eq("id", user.id).single();
+  if (!profile || !["admin", "editor"].includes(profile.role))
+    throw new Error("Not authorized");
+
+  const service = getServiceClient();
+  const { error } = await service.from("responses").delete().in("id", ids);
+  if (error) throw new Error(error.message);
+  revalidatePath("/forms");
+  revalidatePath("/dashboard");
+}
+
+// ── Update response data fields (admin use: remove a file field, etc.) ──
+export async function updateResponseData(
+  responseId: string,
+  data: Record<string, string | string[]>
+): Promise<void> {
+  const service = getServiceClient();
+  const { error } = await service
+    .from("responses")
+    .update({ data })
+    .eq("id", responseId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/uploads");
+  revalidatePath("/dashboard");
+}
+
 // ── Get response stats for a form ──
 export async function getResponseStats(formId: string) {
   const service = getServiceClient();

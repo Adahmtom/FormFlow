@@ -2,6 +2,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { Paperclip, FolderOpen, Trash2, Download, Loader } from "lucide-react";
 import { FORM_CATEGORIES } from "@/lib/constants";
 import type { Form } from "@/types";
 import type { FileUploadEntry } from "@/app/(app)/dashboard/page";
@@ -22,8 +23,26 @@ export default function DashboardClient({
   fileUploads: FileUploadEntry[];
 }) {
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
+  const [deletingPaths,   setDeletingPaths]   = useState<Set<string>>(new Set());
   const [activeCat, setActiveCat]             = useState<string>("all");
   const [expandedForms, setExpandedForms]     = useState<Record<string, boolean>>({});
+  const [uploads, setUploads]                 = useState(fileUploads);
+
+  const handleDelete = async (entry: (typeof fileUploads)[0]) => {
+    if (!confirm(`Delete "${entry.fileName}"? This cannot be undone.`)) return;
+    setDeletingPaths(prev => new Set([...prev, entry.filePath]));
+    try {
+      const res  = await fetch("/api/file", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: entry.filePath, responseId: entry.responseId, fieldLabel: entry.fieldLabel }),
+      });
+      const data = await res.json();
+      if (data.success) setUploads(prev => prev.filter(u => u.filePath !== entry.filePath));
+      else alert(`Delete failed: ${data.error}`);
+    } catch { alert("Delete failed. Please try again."); }
+    setDeletingPaths(prev => { const n = new Set(prev); n.delete(entry.filePath); return n; });
+  };
 
   const totalResp = Object.values(responseMap).reduce((s, c) => s + c, 0);
   const catCount  = (id: string) => forms.filter(f => f.category === id).length;
@@ -32,15 +51,19 @@ export default function DashboardClient({
 
   const handleDownload = async (filePath: string, fileName: string) => {
     setDownloadingPath(filePath);
+    // Open window synchronously inside the user-gesture handler — required by Safari
+    const win = window.open("", "_blank");
     try {
       const res  = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
       const data = await res.json();
-      if (data.url) {
-        window.open(data.url, "_blank");
+      if (data.url && win) {
+        win.location.href = data.url;
       } else {
+        win?.close();
         alert(`Could not retrieve file: ${data.error ?? "File not found in storage"}`);
       }
-    } catch (e) {
+    } catch {
+      win?.close();
       alert("Download failed. Please try again.");
     }
     setDownloadingPath(null);
@@ -51,8 +74,8 @@ export default function DashboardClient({
 
   // ── Group file uploads by formId, then filter by category tab ──
   const filteredUploads = activeCat === "all"
-    ? fileUploads
-    : fileUploads.filter(e => {
+    ? uploads
+    : uploads.filter(e => {
         const form = forms.find(f => f.id === e.formId);
         return form?.category === activeCat;
       });
@@ -69,9 +92,9 @@ export default function DashboardClient({
   }
 
   // Category tab counts
-  const catFileCounts: Record<string, number> = { all: fileUploads.length };
+  const catFileCounts: Record<string, number> = { all: uploads.length };
   for (const cat of FORM_CATEGORIES) {
-    catFileCounts[cat.id] = fileUploads.filter(e => {
+    catFileCounts[cat.id] = uploads.filter(e => {
       const form = forms.find(f => f.id === e.formId);
       return form?.category === cat.id;
     }).length;
@@ -170,8 +193,8 @@ export default function DashboardClient({
 
           {/* Card header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", ...dimText }}>
-              📎 File Uploads
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", ...dimText, display: "flex", alignItems: "center", gap: 6 }}>
+              <Paperclip size={12} /> File Uploads
             </div>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#C77DFF", background: "#C77DFF15", padding: "2px 8px", borderRadius: 20 }}>
               {filteredUploads.length}
@@ -180,7 +203,7 @@ export default function DashboardClient({
 
           {/* Category filter tabs */}
           <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {[{ id: "all", label: "All", color: "#C77DFF", icon: "📂" }, ...FORM_CATEGORIES].map(tab => {
+            {[{ id: "all", label: "All", color: "#C77DFF", icon: "" }, ...FORM_CATEGORIES].map(tab => {
               const isActive = activeCat === tab.id;
               const count    = catFileCounts[tab.id] ?? 0;
               const cat      = FORM_CATEGORIES.find(c => c.id === tab.id);
@@ -212,7 +235,7 @@ export default function DashboardClient({
           {filteredUploads.length === 0
             ? (
               <div style={{ textAlign: "center", padding: "32px 0", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
+                <div style={{ marginBottom: 8, color: "var(--text-dim)" }}><FolderOpen size={32} /></div>
                 <div style={{ fontSize: 13, fontWeight: 600, ...mutedText, marginBottom: 4 }}>No files yet</div>
                 <div style={{ fontSize: 12, ...dimText }}>
                   {activeCat === "all"
@@ -289,60 +312,68 @@ export default function DashboardClient({
                               : (cat?.color ?? "#C77DFF");
 
                             return (
-                              <div key={`${entry.filePath}-${i}`} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderBottom: i < entries.slice(0, PREVIEW).length - 1 ? "1px solid var(--border)" : "none" }}>
-
+                              <div
+                                key={`${entry.filePath}-${i}`}
+                                className="upload-row"
+                                style={{ borderBottom: i < entries.slice(0, PREVIEW).length - 1 ? "1px solid var(--border)" : "none", padding: "10px 12px", gap: 10 }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-sub)")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                              >
                                 {/* Submitter avatar */}
                                 <div
                                   title={[entry.submitterName, entry.submitterEmail].filter(Boolean).join(" · ") || "Anonymous"}
-                                  style={{ width: 30, height: 30, borderRadius: "50%", background: `${avatarColor}20`, border: `1.5px solid ${avatarColor}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}
+                                  style={{ width: 32, height: 32, borderRadius: "50%", background: `${avatarColor}20`, border: `1.5px solid ${avatarColor}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                                 >
                                   <span style={{ fontSize: 10, fontWeight: 800, color: avatarColor }}>{initials}</span>
                                 </div>
 
-                                {/* Info */}
+                                {/* Merged info — mobile-friendly single column */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  {/* Submitter row */}
-                                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2, flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>
+                                  {/* Row 1: name + ext badge */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                                       {entry.submitterName ?? "Anonymous"}
                                     </span>
-                                    {entry.submitterEmail && (
-                                      <span style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>
-                                        {entry.submitterEmail}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {/* File row */}
-                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                    <div style={{ width: 18, height: 18, borderRadius: 4, background: `${extColor}12`, border: `1px solid ${extColor}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    <div style={{ width: 28, height: 18, borderRadius: 4, background: `${extColor}12`, border: `1px solid ${extColor}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                       <span style={{ fontSize: 7, fontWeight: 800, color: extColor, textTransform: "uppercase" }}>{ext || "?"}</span>
                                     </div>
-                                    <span style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  </div>
+                                  {/* Row 2: email */}
+                                  {entry.submitterEmail && (
+                                    <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
+                                      {entry.submitterEmail}
+                                    </div>
+                                  )}
+                                  {/* Row 3: filename + date */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                                    <span style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                                       {entry.fileName}
                                     </span>
-                                  </div>
-                                  {/* Meta */}
-                                  <div style={{ fontSize: 10, ...dimText, marginTop: 2 }}>
-                                    {entry.fieldLabel} · {new Date(entry.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                                    <span style={{ fontSize: 10, ...dimText, whiteSpace: "nowrap", flexShrink: 0 }}>
+                                      {new Date(entry.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                    </span>
                                   </div>
                                 </div>
 
-                                {/* Download */}
-                                <button
-                                  onClick={() => handleDownload(entry.filePath, entry.fileName)}
-                                  disabled={isLoading}
-                                  title={`Download ${entry.fileName}`}
-                                  style={{
-                                    background: isLoading ? "transparent" : "#00D4FF12",
-                                    color: isLoading ? "var(--text-dim)" : "#00D4FF",
-                                    border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`,
-                                    borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700,
-                                    cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif",
-                                    flexShrink: 0, transition: "all .15s", marginTop: 2,
-                                  }}
-                                >
-                                  {isLoading ? "⏳" : "↓"}
-                                </button>
+                                {/* Actions */}
+                                <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                                  <button
+                                    onClick={() => handleDownload(entry.filePath, entry.fileName)}
+                                    disabled={isLoading}
+                                    title={`Download ${entry.fileName}`}
+                                    style={{ background: isLoading ? "transparent" : "#00D4FF12", color: isLoading ? "var(--text-dim)" : "#00D4FF", border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`, borderRadius: 6, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                  >
+                                    {isLoading ? <Loader size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={11} />}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(entry)}
+                                    disabled={deletingPaths.has(entry.filePath)}
+                                    title={`Delete ${entry.fileName}`}
+                                    style={{ background: deletingPaths.has(entry.filePath) ? "transparent" : "#ef444412", color: deletingPaths.has(entry.filePath) ? "var(--text-dim)" : "#ef4444", border: `1.5px solid ${deletingPaths.has(entry.filePath) ? "var(--border)" : "#ef444430"}`, borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 700, cursor: deletingPaths.has(entry.filePath) ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                  >
+                                    {deletingPaths.has(entry.filePath) ? <Loader size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Trash2 size={11} />}
+                                  </button>
+                                </div>
                               </div>
                             );
                           })}
