@@ -13,13 +13,13 @@
   --bg-card:     #0d0d16;
   --bg-sub:      #08080f;
   --bg-deep:     #080810;
-  --border:      #171726;
-  --border-lt:   #1e1e30;
+  --border:      #1e1e30;
+  --border-lt:   #2a2a42;
   --text:        #F0EFF8;
-  --text-muted:  #777;
-  --text-dim:    #444;
+  --text-muted:  #9094b0;
+  --text-dim:    #5e6079;
   --input-bg:    #0e0e16;
-  --input-ph:    #3a3a55;
+  --input-ph:    #4a4a68;
   --scrollbar-track: #0c0c10;
   --scrollbar-thumb: #2a2a40;
   --shadow:      0 4px 24px rgba(0,0,0,.4);

@@ -4,33 +4,63 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  LayoutDashboard, LayoutGrid, Paperclip, Users,
+  Sun, Moon, Menu, X, ChevronRight, Briefcase, Mail, BarChart2,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { FORM_CATEGORIES } from "@/lib/constants";
 import { useTheme } from "@/components/ThemeProvider";
 import type { UserRole } from "@/types";
 
-function CategoryLinks() {
-  const pathname    = usePathname();
+// Icon map for each category ID
+const CAT_ICONS: Record<string, React.ReactNode> = {
+  job:     <Briefcase size={13} />,
+  contact: <Mail      size={13} />,
+  survey:  <BarChart2 size={13} />,
+};
+
+// Renders "All Forms" + category links — needs useSearchParams so lives in its own Suspense boundary
+function FormsNavLinks() {
+  const pathname     = usePathname();
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get("category");
+  const onForms = pathname.startsWith("/forms");
+
+  // "All Forms" is active when on /forms with no category filter
+  const allFormsActive = onForms && !activeCategory;
 
   return (
-    <div style={{ paddingLeft: 10, display: "flex", flexDirection: "column", gap: 1, marginTop: 2 }}>
-      {FORM_CATEGORIES.map(cat => {
-        const href   = `/forms?category=${cat.id}`;
-        const active = pathname.startsWith("/forms") && activeCategory === cat.id;
-        return (
-          <Link key={cat.id} href={href} style={{
-            padding: "7px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600,
-            display: "flex", alignItems: "center", gap: 9, textDecoration: "none",
-            transition: "all .2s",
-            background: active ? "#FF6B3515" : "transparent",
-            color: active ? "#FF9A5C" : "var(--text-muted)",
-          }}>
-            <span style={{ fontSize: 13 }}>{cat.icon}</span>{cat.label}
-          </Link>
-        );
-      })}
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Link href="/forms" style={{
+        padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+        display: "flex", alignItems: "center", gap: 10, textDecoration: "none",
+        transition: "all .2s",
+        background: allFormsActive ? "#FF6B3515" : "transparent",
+        color: allFormsActive ? "#FF9A5C" : "var(--text-muted)",
+      }}>
+        <LayoutGrid size={16} />All Forms
+      </Link>
+
+      {/* Category shortcuts */}
+      <div style={{ paddingLeft: 10, display: "flex", flexDirection: "column", gap: 1, marginTop: 2 }}>
+        {FORM_CATEGORIES.map(cat => {
+          const href   = `/forms?category=${cat.id}`;
+          const active = onForms && activeCategory === cat.id;
+          return (
+            <Link key={cat.id} href={href} style={{
+              padding: "7px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600,
+              display: "flex", alignItems: "center", gap: 9, textDecoration: "none",
+              transition: "all .2s",
+              background: active ? "#FF6B3515" : "transparent",
+              color: active ? "#FF9A5C" : "var(--text-muted)",
+            }}>
+              {CAT_ICONS[cat.id] ?? <LayoutGrid size={13} />}
+              {cat.label}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -43,7 +73,6 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -51,10 +80,8 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Close sidebar on route change (mobile)
   useEffect(() => { setOpen(false); }, [pathname]);
 
-  // Prevent body scroll when sidebar open on mobile
   useEffect(() => {
     if (isMobile && open) {
       document.body.style.overflow = "hidden";
@@ -74,7 +101,7 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
     admin: "#FF6B35", editor: "#00D4FF", viewer: "#C77DFF", responder: "#22c55e",
   };
 
-  const navLink = (href: string, label: string, icon: string) => (
+  const navLink = (href: string, label: string, icon: React.ReactNode) => (
     <Link key={href} href={href} style={{
       padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 600,
       display: "flex", alignItems: "center", gap: 10, textDecoration: "none",
@@ -82,7 +109,7 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
       background: isOn(href) ? "#FF6B3515" : "transparent",
       color: isOn(href) ? "#FF9A5C" : "var(--text-muted)",
     }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>{label}
+      {icon}{label}
     </Link>
   );
 
@@ -97,54 +124,56 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
           <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2, letterSpacing: ".07em", textTransform: "uppercase" }}>Pro Builder</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Theme toggle */}
           <button
             onClick={toggle}
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
             style={{
-              background: "var(--bg-card)",
-              border: "1.5px solid var(--border-lt)",
-              borderRadius: 8,
-              color: isDark ? "#f59e0b" : "#6366f1",
-              fontSize: 15,
-              cursor: "pointer",
-              width: 34,
-              height: 34,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all .2s",
-              flexShrink: 0,
+              background: "var(--bg-card)", border: "1.5px solid var(--border-lt)", borderRadius: 8,
+              color: isDark ? "#f59e0b" : "#6366f1", cursor: "pointer",
+              width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all .2s", flexShrink: 0,
             }}
           >
-            {isDark ? "☀️" : "🌙"}
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
           {isMobile && (
             <button onClick={() => setOpen(false)} style={{
-              background: "var(--bg-card)", border: "1.5px solid var(--border-lt)", color: "var(--text-muted)", fontSize: 18, cursor: "pointer",
-              width: 34, height: 34, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-            }}>✕</button>
+              background: "var(--bg-card)", border: "1.5px solid var(--border-lt)", color: "var(--text-muted)",
+              cursor: "pointer", width: 34, height: 34, borderRadius: 8,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <X size={16} />
+            </button>
           )}
         </div>
       </div>
 
       {/* Main nav */}
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {navLink("/dashboard", "Dashboard", "▣")}
-        {navLink("/forms", "All Forms", "◫")}
-        {/* Category shortcuts */}
-        <Suspense fallback={null}>
-          <CategoryLinks />
+        {navLink("/dashboard", "Dashboard", <LayoutDashboard size={16} />)}
+
+        {/* All Forms + category links — Suspense needed for useSearchParams */}
+        <Suspense fallback={
+          <Link href="/forms" style={{
+            padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+            display: "flex", alignItems: "center", gap: 10, textDecoration: "none",
+            color: "var(--text-muted)",
+          }}>
+            <LayoutGrid size={16} />All Forms
+          </Link>
+        }>
+          <FormsNavLinks />
         </Suspense>
+
         <div style={{ marginTop: 4 }}>
-          {navLink("/uploads", "File Uploads", "📎")}
+          {navLink("/uploads", "File Uploads", <Paperclip size={16} />)}
         </div>
       </div>
 
       {/* Admin section */}
       {userRole === "admin" && (
         <div style={{ marginTop: 10, borderTop: "1.5px solid var(--border)", paddingTop: 14 }}>
-          {navLink("/admin/users", "User Management", "👥")}
+          {navLink("/admin/users", "User Management", <Users size={16} />)}
         </div>
       )}
 
@@ -180,33 +209,28 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
         }}>
           <button onClick={() => setOpen(true)} style={{
             background: "none", border: "1.5px solid var(--border-lt)", borderRadius: 8,
-            color: "var(--text-muted)", fontSize: 20, cursor: "pointer", padding: "6px 10px",
+            color: "var(--text-muted)", cursor: "pointer", padding: "6px 10px",
             display: "flex", alignItems: "center", justifyContent: "center",
-          }}>☰</button>
+          }}>
+            <Menu size={20} />
+          </button>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, letterSpacing: ".08em", background: "linear-gradient(135deg,#FF6B35,#FF9A5C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FORMFLOW</div>
-          {/* Mobile theme toggle */}
-          <button
-            onClick={toggle}
-            style={{
-              background: "none", border: "1.5px solid var(--border-lt)", borderRadius: 8,
-              color: isDark ? "#f59e0b" : "#6366f1", fontSize: 16, cursor: "pointer",
-              width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            {isDark ? "☀️" : "🌙"}
+          <button onClick={toggle} style={{
+            background: "none", border: "1.5px solid var(--border-lt)", borderRadius: 8,
+            color: isDark ? "#f59e0b" : "#6366f1", cursor: "pointer",
+            width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>
       )}
 
       {/* Mobile overlay */}
       {isMobile && open && (
-        <div
-          onClick={() => setOpen(false)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 98,
-            animation: "fadeIn .2s ease",
-          }}
-        />
+        <div onClick={() => setOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 98,
+          animation: "fadeIn .2s ease",
+        }} />
       )}
 
       {/* Sidebar */}
@@ -216,20 +240,14 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
         borderRight: "1.5px solid var(--border)",
         padding: "18px 10px",
         display: "flex", flexDirection: "column", gap: 3,
-        flexShrink: 0,
-        height: "100vh",
-        overflowY: "auto",
+        flexShrink: 0, height: "100vh", overflowY: "auto",
         transition: "background .2s, border-color .2s",
         ...(isMobile ? {
-          position: "fixed",
-          top: 0,
-          left: open ? 0 : -300,
-          zIndex: 99,
+          position: "fixed", top: 0, left: open ? 0 : -300, zIndex: 99,
           transition: "left .25s ease, background .2s",
           boxShadow: open ? "4px 0 24px rgba(0,0,0,.3)" : "none",
         } : {
-          position: "sticky",
-          top: 0,
+          position: "sticky", top: 0,
         }),
       }}>
         {sidebarContent}

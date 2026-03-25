@@ -2,6 +2,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { Paperclip, FolderOpen, Trash2, Download, Loader } from "lucide-react";
 import { FORM_CATEGORIES } from "@/lib/constants";
 import type { Form } from "@/types";
 import type { FileUploadEntry } from "@/app/(app)/dashboard/page";
@@ -192,8 +193,8 @@ export default function DashboardClient({
 
           {/* Card header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", ...dimText }}>
-              📎 File Uploads
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", ...dimText, display: "flex", alignItems: "center", gap: 6 }}>
+              <Paperclip size={12} /> File Uploads
             </div>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#C77DFF", background: "#C77DFF15", padding: "2px 8px", borderRadius: 20 }}>
               {filteredUploads.length}
@@ -202,7 +203,7 @@ export default function DashboardClient({
 
           {/* Category filter tabs */}
           <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {[{ id: "all", label: "All", color: "#C77DFF", icon: "📂" }, ...FORM_CATEGORIES].map(tab => {
+            {[{ id: "all", label: "All", color: "#C77DFF", icon: "" }, ...FORM_CATEGORIES].map(tab => {
               const isActive = activeCat === tab.id;
               const count    = catFileCounts[tab.id] ?? 0;
               const cat      = FORM_CATEGORIES.find(c => c.id === tab.id);
@@ -234,7 +235,7 @@ export default function DashboardClient({
           {filteredUploads.length === 0
             ? (
               <div style={{ textAlign: "center", padding: "32px 0", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
+                <div style={{ marginBottom: 8, color: "var(--text-dim)" }}><FolderOpen size={32} /></div>
                 <div style={{ fontSize: 13, fontWeight: 600, ...mutedText, marginBottom: 4 }}>No files yet</div>
                 <div style={{ fontSize: 12, ...dimText }}>
                   {activeCat === "all"
@@ -360,17 +361,17 @@ export default function DashboardClient({
                                     onClick={() => handleDownload(entry.filePath, entry.fileName)}
                                     disabled={isLoading}
                                     title={`Download ${entry.fileName}`}
-                                    style={{ background: isLoading ? "transparent" : "#00D4FF12", color: isLoading ? "var(--text-dim)" : "#00D4FF", border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`, borderRadius: 6, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s" }}
+                                    style={{ background: isLoading ? "transparent" : "#00D4FF12", color: isLoading ? "var(--text-dim)" : "#00D4FF", border: `1.5px solid ${isLoading ? "var(--border)" : "#00D4FF28"}`, borderRadius: 6, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center" }}
                                   >
-                                    {isLoading ? "⏳" : "↓"}
+                                    {isLoading ? <Loader size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={11} />}
                                   </button>
                                   <button
                                     onClick={() => handleDelete(entry)}
                                     disabled={deletingPaths.has(entry.filePath)}
                                     title={`Delete ${entry.fileName}`}
-                                    style={{ background: deletingPaths.has(entry.filePath) ? "transparent" : "#ef444412", color: deletingPaths.has(entry.filePath) ? "var(--text-dim)" : "#ef4444", border: `1.5px solid ${deletingPaths.has(entry.filePath) ? "var(--border)" : "#ef444430"}`, borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 700, cursor: deletingPaths.has(entry.filePath) ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s" }}
+                                    style={{ background: deletingPaths.has(entry.filePath) ? "transparent" : "#ef444412", color: deletingPaths.has(entry.filePath) ? "var(--text-dim)" : "#ef4444", border: `1.5px solid ${deletingPaths.has(entry.filePath) ? "var(--border)" : "#ef444430"}`, borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 700, cursor: deletingPaths.has(entry.filePath) ? "not-allowed" : "pointer", fontFamily: "Outfit,sans-serif", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center" }}
                                   >
-                                    {deletingPaths.has(entry.filePath) ? "…" : "🗑"}
+                                    {deletingPaths.has(entry.filePath) ? <Loader size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Trash2 size={11} />}
                                   </button>
                                 </div>
                               </div>
