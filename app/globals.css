@@ -9,20 +9,20 @@
 :root {
   --accent:      #FF6B35;
   --accent-lt:   #FF9A5C;
-  --bg:          #060608;
-  --bg-card:     #0d0d16;
-  --bg-sub:      #08080f;
-  --bg-deep:     #080810;
-  --border:      #1e1e30;
-  --border-lt:   #2a2a42;
-  --text:        #F0EFF8;
-  --text-muted:  #9094b0;
-  --text-dim:    #5e6079;
-  --input-bg:    #0e0e16;
-  --input-ph:    #4a4a68;
-  --scrollbar-track: #0c0c10;
-  --scrollbar-thumb: #2a2a40;
-  --shadow:      0 4px 24px rgba(0,0,0,.4);
+  --bg:          #0f0f17;
+  --bg-card:     #17192b;
+  --bg-sub:      #0b0c18;
+  --bg-deep:     #090b14;
+  --border:      #252840;
+  --border-lt:   #323558;
+  --text:        #ffffff;
+  --text-muted:  #c2c6e0;
+  --text-dim:    #7c82a0;
+  --input-bg:    #13152a;
+  --input-ph:    #4f5578;
+  --scrollbar-track: #0f1020;
+  --scrollbar-thumb: #323558;
+  --shadow:      0 4px 28px rgba(0,0,0,.5);
 }
 
 /* ── Light theme ── */
